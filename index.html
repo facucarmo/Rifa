@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reservá tu número</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── REEMPLAZÁ esta URL con la tuya después de publicar el Apps Script ── */
+    /* Se configura en el script de abajo: variable SCRIPT_URL */
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green: #1D9E75;
+      --green-light: #E1F5EE;
+      --green-dark: #085041;
+      --red: #E24B4A;
+      --red-light: #FCEBEB;
+      --red-dark: #791F1F;
+      --gray-bg: #F6F5F1;
+      --gray-border: #E2E0D8;
+      --gray-text: #888780;
+      --text: #1a1a18;
+      --white: #ffffff;
+      --radius: 10px;
+      --font: 'DM Sans', sans-serif;
+      --mono: 'DM Mono', monospace;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--gray-bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem 1rem 4rem;
+    }
+
+    .container { max-width: 560px; margin: 0 auto; }
+
+    .header { text-align: center; margin-bottom: 2rem; }
+    .header h1 { font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+    .header p { font-size: 15px; color: var(--gray-text); margin-top: 6px; }
+
+    .card {
+      background: var(--white);
+      border: 1px solid var(--gray-border);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--gray-text);
+      margin-bottom: 1rem;
+    }
+
+    .field { margin-bottom: 1.25rem; }
+    .field label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+    .field input {
+      width: 100%;
+      padding: 10px 14px;
+      font-family: var(--font);
+      font-size: 15px;
+      border: 1px solid var(--gray-border);
+      border-radius: var(--radius);
+      background: var(--gray-bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .field input:focus { border-color: var(--green); background: var(--white); }
+    .field input::placeholder { color: var(--gray-text); }
+
+    /* ── GRILLA DE NÚMEROS ── */
+    .num-section { margin-bottom: 1.25rem; }
+    .num-section label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 10px; }
+
+    .num-search {
+      width: 100%;
+      padding: 8px 14px;
+      font-family: var(--mono);
+      font-size: 14px;
+      border: 1px solid var(--gray-border);
+      border-radius: var(--radius);
+      background: var(--gray-bg);
+      color: var(--text);
+      outline: none;
+      margin-bottom: 10px;
+      transition: border-color 0.15s;
+    }
+    .num-search:focus { border-color: var(--green); background: var(--white); }
+
+    .num-grid {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 5px;
+      max-height: 320px;
+      overflow-y: auto;
+      padding: 4px 2px;
+    }
+
+    .num-btn {
+      aspect-ratio: 1;
+      border: 1px solid var(--gray-border);
+      border-radius: 7px;
+      background: var(--white);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.1s;
+      padding: 0;
+    }
+    .num-btn:hover:not(.taken):not(.selected) {
+      border-color: var(--green);
+      background: var(--green-light);
+      color: var(--green-dark);
+    }
+    .num-btn.selected {
+      background: var(--green);
+      border-color: var(--green);
+      color: var(--white);
+      font-weight: 600;
+      transform: scale(1.08);
+    }
+    .num-btn.taken {
+      background: var(--gray-bg);
+      border-color: transparent;
+      color: #C8C6BE;
+      cursor: not-allowed;
+      text-decoration: line-through;
+    }
+    .num-btn.hidden { display: none; }
+
+    .legend {
+      display: flex;
+      gap: 16px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--gray-text);
+    }
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    /* ── PAGO ── */
+    .pago-toggle { display: flex; gap: 10px; margin-top: 6px; }
+    .pago-btn {
+      flex: 1;
+      padding: 11px;
+      border: 1px solid var(--gray-border);
+      border-radius: var(--radius);
+      background: var(--white);
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--gray-text);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .pago-btn:hover { border-color: var(--gray-text); }
+    .pago-btn.si { background: var(--green-light); border-color: var(--green); color: var(--green-dark); }
+    .pago-btn.no { background: var(--red-light); border-color: var(--red); color: var(--red-dark); }
+
+    /* ── BOTÓN ENVIAR ── */
+    .submit-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--green);
+      color: var(--white);
+      font-family: var(--font);
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      margin-top: 1.5rem;
+      letter-spacing: -0.2px;
+    }
+    .submit-btn:hover { opacity: 0.88; }
+    .submit-btn:active { transform: scale(0.98); }
+    .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── MENSAJES ── */
+    .msg {
+      margin-top: 1rem;
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 500;
+      display: none;
+    }
+    .msg.ok { background: var(--green-light); color: var(--green-dark); display: block; }
+    .msg.err { background: var(--red-light); color: var(--red-dark); display: block; }
+
+    /* ── ESTADO DE CARGA ── */
+    .loader {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--gray-text);
+      margin-bottom: 8px;
+    }
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid var(--gray-border);
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .selected-display {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--gray-text);
+      margin-top: 8px;
+    }
+    .selected-display span {
+      color: var(--green-dark);
+      font-weight: 600;
+    }
+
+    @media (max-width: 420px) {
+      .num-grid { grid-template-columns: repeat(8, 1fr); }
+      .card { padding: 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>Reservá tu número</h1>
+    <p>Elegí un número del 0 al 199 y completá tus datos.</p>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Tus datos</div>
+
+    <div class="field">
+      <label for="inp-nombre">Nombre completo</label>
+      <input type="text" id="inp-nombre" placeholder="Ej: Juan Pérez" autocomplete="name" />
+    </div>
+
+    <div class="field">
+      <label for="inp-tel">Teléfono / WhatsApp</label>
+      <input type="tel" id="inp-tel" placeholder="Ej: 3442 123456" autocomplete="tel" />
+    </div>
+
+    <div class="num-section">
+      <label>Número elegido</label>
+      <div id="loader" class="loader">
+        <div class="spinner"></div>
+        Cargando disponibilidad...
+      </div>
+      <input type="number" class="num-search" id="num-search" placeholder="Buscá un número (0-199)..." min="0" max="199" style="display:none;" />
+      <div class="num-grid" id="num-grid"></div>
+      <div class="legend" id="legend" style="display:none;">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--green);"></div> Tu selección
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--white); border:1px solid var(--gray-border);"></div> Disponible
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--gray-bg); border:1px solid transparent;"></div> Ocupado
+        </div>
+      </div>
+      <div class="selected-display" id="selected-display" style="display:none;">
+        Seleccionado: <span id="selected-num-text">–</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>¿Ya realizaste el pago?</label>
+      <div class="pago-toggle">
+        <button type="button" class="pago-btn" id="btn-si" onclick="setPago(true)">✓ Sí, pagué</button>
+        <button type="button" class="pago-btn" id="btn-no" onclick="setPago(false)">✗ Todavía no</button>
+      </div>
+    </div>
+
+    <button class="submit-btn" id="submit-btn" onclick="enviar()">Reservar número</button>
+    <div class="msg" id="msg"></div>
+  </div>
+</div>
+
+<script>
+  // ══════════════════════════════════════════════════════
+  //  ⚠️  REEMPLAZÁ esta URL con la tuya del Apps Script
+  // ══════════════════════════════════════════════════════
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLuE1vWeG5g5stVNtSqyKcSn48LWE2AR3QFVx80lnIFsxsIKVrJ19RnlE5dY8H7JTd/exec";
+
+  let selectedNum = null;
+  let pagoVal = null;
+  let takenNums = new Set();
+  let gridReady = false;
+
+  // ── Cargar números tomados al iniciar ──
+  async function cargarNumerosOcupados() {
+    try {
+      const res = await fetch(SCRIPT_URL + "?action=getNumeros");
+      const data = await res.json();
+      if (data.tomados) {
+        takenNums = new Set(data.tomados.map(Number));
+      }
+    } catch (e) {
+      console.warn("No se pudieron cargar los números:", e);
+    } finally {
+      document.getElementById("loader").style.display = "none";
+      document.getElementById("num-search").style.display = "";
+      document.getElementById("legend").style.display = "flex";
+      renderGrid();
+      gridReady = true;
+      // Refresca cada 30 segundos
+      setInterval(refrescarNumerosOcupados, 30000);
+    }
+  }
+
+  async function refrescarNumerosOcupados() {
+    try {
+      const res = await fetch(SCRIPT_URL + "?action=getNumeros&t=" + Date.now());
+      const data = await res.json();
+      if (data.tomados) {
+        takenNums = new Set(data.tomados.map(Number));
+        renderGrid();
+      }
+    } catch (e) {}
+  }
+
+  // ── Renderizar grilla ──
+  function renderGrid() {
+    const grid = document.getElementById("num-grid");
+    const query = document.getElementById("num-search").value.trim();
+    grid.innerHTML = "";
+
+    for (let i = 0; i <= 199; i++) {
+      const btn = document.createElement("div");
+      btn.className = "num-btn";
+      btn.textContent = i;
+      btn.dataset.num = i;
+
+      if (takenNums.has(i) && i !== selectedNum) {
+        btn.classList.add("taken");
+      } else if (selectedNum === i) {
+        btn.classList.add("selected");
+      } else {
+        btn.onclick = () => selectNum(i);
+      }
+
+      if (query !== "" && !String(i).includes(query)) {
+        btn.classList.add("hidden");
+      }
+
+      grid.appendChild(btn);
+    }
+
+    // Mostrar seleccionado
+    const display = document.getElementById("selected-display");
+    const text = document.getElementById("selected-num-text");
+    if (selectedNum !== null) {
+      display.style.display = "block";
+      text.textContent = selectedNum;
+    } else {
+      display.style.display = "none";
+    }
+  }
+
+  function selectNum(n) {
+    if (takenNums.has(n)) return;
+    selectedNum = n;
+    renderGrid();
+    // Scroll al número seleccionado
+    const btn = document.querySelector(`.num-btn[data-num="${n}"]`);
+    if (btn) btn.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+
+  document.getElementById("num-search").addEventListener("input", () => {
+    renderGrid();
+  });
+
+  // ── Pago ──
+  function setPago(val) {
+    pagoVal = val;
+    document.getElementById("btn-si").className = "pago-btn" + (val === true ? " si" : "");
+    document.getElementById("btn-no").className = "pago-btn" + (val === false ? " no" : "");
+  }
+
+  // ── Mensajes ──
+  function showMsg(text, type) {
+    const el = document.getElementById("msg");
+    el.textContent = text;
+    el.className = "msg " + type;
+    el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+  function hideMsg() {
+    document.getElementById("msg").className = "msg";
+  }
+
+  // ── Enviar ──
+  async function enviar() {
+    hideMsg();
+    const nombre = document.getElementById("inp-nombre").value.trim();
+    const telefono = document.getElementById("inp-tel").value.trim();
+
+    if (!nombre) return showMsg("Por favor ingresá tu nombre.", "err");
+    if (!telefono) return showMsg("Por favor ingresá tu teléfono.", "err");
+    if (selectedNum === null) return showMsg("Por favor elegí un número.", "err");
+    if (pagoVal === null) return showMsg("Por favor indicá si realizaste el pago.", "err");
+
+    const btn = document.getElementById("submit-btn");
+    btn.disabled = true;
+    btn.textContent = "Enviando...";
+
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          nombre,
+          telefono,
+          numero_elegido: selectedNum,
+          pago: pagoVal
+        })
+      });
+      const data = await res.json();
+
+      if (data.ok) {
+        takenNums.add(selectedNum);
+        showMsg("✓ ¡Número " + selectedNum + " reservado correctamente! Gracias, " + nombre + ".", "ok");
+        // Limpiar formulario
+        document.getElementById("inp-nombre").value = "";
+        document.getElementById("inp-tel").value = "";
+        selectedNum = null;
+        pagoVal = null;
+        document.getElementById("btn-si").className = "pago-btn";
+        document.getElementById("btn-no").className = "pago-btn";
+        document.getElementById("num-search").value = "";
+        renderGrid();
+      } else {
+        showMsg(data.error || "Ocurrió un error. Intentá de nuevo.", "err");
+      }
+    } catch (e) {
+      showMsg("Error de conexión. Verificá tu internet e intentá de nuevo.", "err");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Reservar número";
+    }
+  }
+
+  // ── Inicio ──
+  cargarNumerosOcupados();
+</script>
+</body>
+</html>
